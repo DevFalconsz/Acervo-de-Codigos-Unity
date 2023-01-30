@@ -8,6 +8,7 @@ public class CharacterMovement : MonoBehaviour
     public float gravity = -9.81f;
     
     private Rigidbody rb;
+    
     private bool isGrounded;
 
     void Start()
@@ -17,27 +18,26 @@ public class CharacterMovement : MonoBehaviour
 
     void Update()
     {
-        // Check if the character is grounded
+        Physics();
+        CharacterMovement();      
+    }
+    
+    void Physics(){
         isGrounded = Physics.Raycast(transform.position, Vector3.down, groundedDistance);
-
-        // Get input for horizontal and vertical movement
-        float moveX = Input.GetAxis("Horizontal");
-        float moveZ = Input.GetAxis("Vertical");
-
-        // Calculate the desired velocity
+        
         Vector3 desiredVelocity = new Vector3(moveX, 0, moveZ) * moveSpeed;
-
-        // Apply the desired velocity
+        
         rb.AddForce(desiredVelocity - rb.velocity, ForceMode.VelocityChange);
-
-        // Check if the jump button is pressed
+        rb.AddForce(Vector3.up * gravity, ForceMode.Acceleration);
+    }
+    
+    void CharacterMovement(){
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical"); 
+        
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            // Apply upward force for jumping
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
-
-        // Apply gravity
-        rb.AddForce(Vector3.up * gravity, ForceMode.Acceleration);
     }
 }
