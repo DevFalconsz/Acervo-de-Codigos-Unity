@@ -1,43 +1,88 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using Cinemachine;
+using Mirror;
 
-public class CharacterMovement : MonoBehaviour
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
+public class MovementCharacterer : NetworkBehaviour
 {
-    public float moveSpeed = 10.0f;
-    public float jumpForce = 10.0f;
-    public float groundedDistance = 0.2f;
-    public float gravity = -9.81f;
-    
+    public float moveSpeed = 5f;
+    public float jumpForce = 10f;
+    private bool isGrounded = true;
+
     private Rigidbody rb;
-    
-    private bool isGrounded;
+
+    public CinemachineFreeLook virtualCamera;
+
+    public GameObject player;
+
+    private Renderer rendererMaterial;
+
+    public Material playerMaterial;
+    public Material caughtMaterial;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
+        rendererMaterial = GetComponent<Renderer>();
+        virtualCamera = GetComponentInChildren<CinemachineFreeLook>();
+
+        if(isLocalPlayer){
+            rb = GetComponent<Rigidbody>();
+            rb.centerOfMass = new Vector3(0, -0.5f, 0);
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+        }
+
+        if(!isLocalPlayer){
+            virtualCamera.gameObject.SetActive(false);
+        }else{
+            virtualCamera.gameObject.SetActive(true);
+        }
     }
 
-    void Update()
+    void Update(){
+        if(gameObject.tag == "Caught"){
+            rendererMaterial.material = caughtMaterial;
+        }
+        if(gameObject.tag == "Player"){
+            rendererMaterial.material = playerMaterial;
+        }
+        if(Input.GetKeyDown(KeyCode.M)){
+            Vector3 newRotation = new Vector3(0f, 0f, 0f);
+            player.transform.rotation = Quaternion.Euler(newRotation);
+            rb.Sleep();
+        }
+    }
+
+    void FixedUpdate()
     {
-        Physics();
-        CharacterMovement();      
+        if(isLocalPlayer){
+            float horizontalInput = Input.GetAxis("Horizontal");
+            float verticalInput = Input.GetAxis("Vertical");
+
+            Vector3 movement = new Vector3(horizontalInput, 0f, verticalInput) * moveSpeed * Time.deltaTime;
+            rb.MovePosition(transform.position + movement);
+
+            if (Input.GetButtonDown("Jump") && isGrounded)
+            {
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                isGrounded = false;
+            }
+        }
     }
-    
-    void Physics(){
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, groundedDistance);
-        
-        Vector3 desiredVelocity = new Vector3(moveX, 0, moveZ) * moveSpeed;
-        
-        rb.AddForce(desiredVelocity - rb.velocity, ForceMode.VelocityChange);
-        rb.AddForce(Vector3.up * gravity, ForceMode.Acceleration);
-    }
-    
-    void CharacterMovement(){
-        float moveX = Input.GetAxis("Horizontal");
-        float moveZ = Input.GetAxis("Vertical"); 
-        
-        if (Input.GetButtonDown("Jump") && isGrounded)
+
+    void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground") && isLocalPlayer)
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            isGrounded = true;
+        }
+        else if (other.gameObject.CompareTag("Player"))
+        {
+            Vector3 repulsionDirection = transform.position - other.transform.position;
+            rb.AddForce(repulsionDirection.normalized * 10f, ForceMode.Impulse);
         }
     }
 }
