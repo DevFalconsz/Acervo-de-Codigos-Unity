@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Mirror;
 
-public class PiquePegueSystem : NetworkBehaviour
+public class PiquePegueSystemTag : NetworkBehaviour
 {
     private string _playerTag = "Player";
     public GameObject canvas;
